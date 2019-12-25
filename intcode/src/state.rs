@@ -1,29 +1,38 @@
 use std::convert::From;
 
-use rustyline::Editor;
-
 use crate::instruction::{Opcode, ParameterMode};
+use crate::io::{ConsoleIo, ReadInt, WriteInt};
 
 #[derive(Debug)]
-pub struct State {
+pub struct State<T: ReadInt + WriteInt> {
     orig: Vec<i32>,
     program: Vec<i32>,
     pid: usize,
+    pub io: T,
 }
 
-impl From<&str> for State {
+impl From<&str> for State<ConsoleIo> {
     fn from(program: &str) -> Self {
         State {
             orig: program.split(',').map(|n| n.trim_end().parse::<i32>().unwrap()).collect(),
             program: program.split(',').map(|n| n.trim_end().parse::<i32>().unwrap()).collect(),
             pid: 0,
+            io: ConsoleIo::new(),
         }
     }
 }
 
-impl State {
+impl <T: ReadInt + WriteInt> State<T> {
+    pub fn new(program: &str, io: T) -> State<T> {
+        State {
+            orig: program.split(',').map(|n| n.trim_end().parse::<i32>().unwrap()).collect(),
+            program: program.split(',').map(|n| n.trim_end().parse::<i32>().unwrap()).collect(),
+            pid: 0,
+            io,
+        }
+    }
+
     pub fn run(&mut self) -> i32 {
-        let mut rl = Editor::<()>::new();
         loop {
             let opcode = Opcode::from(self.program.get(self.pid).unwrap());
             match opcode {
@@ -40,13 +49,13 @@ impl State {
                     self.pid += 4;
                 },
                 Opcode::Input => {
-                    let input = rl.readline("> ").unwrap().trim_end().parse().unwrap();
+                    let input = self.io.read().unwrap();
                     let index = self.get_one_input(ParameterMode::Immediate);
                     self.program[index as usize] = input;
                     self.pid += 2;
                 },
                 Opcode::Output(mode) => {
-                    println!("Output: {}", self.get_one_input(mode));
+                    self.io.write(self.get_one_input(mode));
                     self.pid += 2;
                 },
                 Opcode::JumpIfTrue(input_mode, pointer_mode) => {
@@ -91,6 +100,10 @@ impl State {
     pub fn reset(&mut self) {
         self.program = self.orig.clone();
         self.pid = 0;
+    }
+
+    pub fn new_io(&mut self, io: T) {
+        self.io = io;
     }
 
     fn get_one_input(&self, mode: ParameterMode) -> i32 {
