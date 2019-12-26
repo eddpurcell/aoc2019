@@ -142,7 +142,7 @@ impl RobotState {
         let y_min = self.hull.keys().map(|p| p.1).min().unwrap() - 1;
         let y_max = self.hull.keys().map(|p| p.1).max().unwrap() + 2;
 
-        for y in y_min..y_max {
+        for y in (y_min..y_max).rev() {
             for x in x_min..x_max {
                 match self.hull.get(&(x, y)) {
                     Some(&c) => {
