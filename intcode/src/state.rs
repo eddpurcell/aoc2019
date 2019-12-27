@@ -109,6 +109,10 @@ impl <T: ReadInt + WriteInt> State<T> {
         self.program[2] = verb;
     }
 
+    pub fn set_mem(&mut self, pos: usize, value: i128) {
+        self.program[pos] = value;
+    }
+
     pub fn reset(&mut self) {
         self.program = self.orig.clone();
         self.pid = 0;
